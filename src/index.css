@@ -1,0 +1,24 @@
+/* Global styles */
+body, html {
+  margin: 0;
+  padding: 0;
+  overflow: hidden; /* Hide scrollbars on desktop */
+  width: 100%;
+  height: 100%;
+}
+
+/* Ensure the canvas takes full height on mobile */
+@media (max-width: 767px) {
+  .relative {
+    width: 100%;
+    height: 100vh; /* Full height for mobile */
+  }
+
+  .w-full {
+    width: 100% !important; /* Ensure full width on mobile */
+  }
+
+  .h-full {
+    height: 100vh !important; /* Ensure full height on mobile */
+  }
+}
