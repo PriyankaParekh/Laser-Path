@@ -7,7 +7,11 @@ const SurfaceWithUser = () => {
   const cameraRef = useRef<THREE.PerspectiveCamera | null>(null);
   const rendererRef = useRef<THREE.WebGLRenderer | null>(null);
   const userRef = useRef<THREE.Group | null>(null);
-  const userPositionRef = useRef<{ x: number; y: number }>({ x: 0, y: 0 });
+  const userPositionRef = useRef<{ x: number; y: number; z: number }>({
+    x: 0,
+    y: 0,
+    z: 0,
+  });
 
   useEffect(() => {
     if (!mountRef.current) return;
@@ -23,13 +27,14 @@ const SurfaceWithUser = () => {
       0.1,
       1000
     );
-    camera.position.set(10, 10, 10);
+    camera.position.set(0, 10, 15);
     camera.lookAt(0, 0, 0);
     cameraRef.current = camera;
 
     // Initialize renderer
     const renderer = new THREE.WebGLRenderer({ antialias: true });
     renderer.setSize(window.innerWidth, window.innerHeight);
+
     renderer.setPixelRatio(window.devicePixelRatio);
     renderer.setClearColor(0x000000, 1); // Black background
     mountRef.current.innerHTML = "";
@@ -37,24 +42,24 @@ const SurfaceWithUser = () => {
     rendererRef.current = renderer;
 
     // Add grid
-    const gridHelper = new THREE.GridHelper(20, 20, 0x0088ff, 0x808080);
+    const gridHelper = new THREE.GridHelper(20, 20, 0x2cff05, 0x808080);
     scene.add(gridHelper);
 
     // Add lights
     const ambientLight = new THREE.AmbientLight(0x404040);
     scene.add(ambientLight);
 
-    const directionalLight = new THREE.DirectionalLight(0xffffff, 0.5);
+    const directionalLight = new THREE.DirectionalLight(0xffffff, 2.5);
     directionalLight.position.set(5, 5, 5);
     scene.add(directionalLight);
 
     // Add fog
-    scene.fog = new THREE.Fog(0x000000, 20, 40);
+    scene.fog = new THREE.Fog(0x000000, 40, 40);
 
     // Add user to the scene
     const material = new THREE.MeshStandardMaterial({
       color: 0xffffff,
-      metalness: 0.2,
+      metalness: 0.1,
       roughness: 0.5,
     });
 
@@ -88,19 +93,26 @@ const SurfaceWithUser = () => {
     user.position.set(0, 0, 0);
     scene.add(user);
     userRef.current = user;
-
-    // Handle keydown events for movement
     const handleKeyDown = (event: KeyboardEvent) => {
+      const GRID_SIZE = 10;
+      const newPosition = { ...userPositionRef.current };
       if (event.key === "ArrowRight") {
-        userPositionRef.current.x += 0.1;
+        newPosition.x = Math.min(newPosition.x + 0.1, GRID_SIZE);
       } else if (event.key === "ArrowLeft") {
-        userPositionRef.current.x -= 0.1;
+        newPosition.x = Math.max(newPosition.x - 0.1, -GRID_SIZE);
+      } else if (event.key === "ArrowUp") {
+        newPosition.z = Math.max(newPosition.z - 0.1, -GRID_SIZE);
+      } else if (event.key === "ArrowDown") {
+        newPosition.z = Math.min(newPosition.z + 0.1, GRID_SIZE);
       } else if (event.key === " ") {
-        userPositionRef.current.y += 1;
-        setTimeout(() => {
-          userPositionRef.current.y -= 1;
-        }, 1000);
+        if (newPosition.y < 2) {
+          newPosition.y += 1;
+          setTimeout(() => {
+            userPositionRef.current.y = 0;
+          }, 1000);
+        }
       }
+      userPositionRef.current = newPosition;
     };
 
     window.addEventListener("keydown", handleKeyDown);
@@ -118,6 +130,7 @@ const SurfaceWithUser = () => {
       requestAnimationFrame(animate);
       userRef.current.position.x = userPositionRef.current.x;
       userRef.current.position.y = userPositionRef.current.y;
+      userRef.current.position.z = userPositionRef.current.z;
 
       rendererRef.current.render(sceneRef.current, cameraRef.current);
     };
@@ -136,10 +149,25 @@ const SurfaceWithUser = () => {
     window.addEventListener("resize", handleResize);
     animate();
 
+    // Add tilt effect tracking
+    const handleMouseMove = (event: MouseEvent) => {
+      if (!userRef.current || !mountRef.current) return;
+
+      const rect = mountRef.current.getBoundingClientRect();
+      const x = ((event.clientX - rect.left) / rect.width) * 2 - 1;
+      const y = -((event.clientY - rect.top) / rect.height) * 2 + 1;
+
+      scene.rotation.y = x * 0.5;
+      scene.rotation.x = y * 0.5;
+    };
+
+    window.addEventListener("mousemove", handleMouseMove);
+
     // Cleanup
     return () => {
       window.removeEventListener("keydown", handleKeyDown);
       window.removeEventListener("resize", handleResize);
+      window.removeEventListener("mousemove", handleMouseMove);
       if (mountRef.current && rendererRef.current) {
         mountRef.current.removeChild(rendererRef.current.domElement);
       }
