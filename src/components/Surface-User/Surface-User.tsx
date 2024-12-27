@@ -2,12 +2,12 @@ import React, { useEffect, useRef } from "react";
 import * as THREE from "three";
 
 const SurfaceWithUser = () => {
-  const mountRef = useRef(null);
-  const sceneRef = useRef(null);
-  const cameraRef = useRef(null);
-  const rendererRef = useRef(null);
-  const userRef = useRef(null);
-  const userPositionRef = useRef({ x: 0, y: 0 }); // Store user position in useRef
+  const mountRef = useRef<HTMLDivElement>(null);
+  const sceneRef = useRef<THREE.Scene | null>(null);
+  const cameraRef = useRef<THREE.PerspectiveCamera | null>(null);
+  const rendererRef = useRef<THREE.WebGLRenderer | null>(null);
+  const userRef = useRef<THREE.Group | null>(null);
+  const userPositionRef = useRef<{ x: number; y: number }>({ x: 0, y: 0 });
 
   useEffect(() => {
     if (!mountRef.current) return;
@@ -35,14 +35,13 @@ const SurfaceWithUser = () => {
     mountRef.current.innerHTML = "";
     mountRef.current.appendChild(renderer.domElement);
     rendererRef.current = renderer;
-    // console.log(renderer.getSize(), "e");
 
     // Add grid
     const gridHelper = new THREE.GridHelper(20, 20, 0x0088ff, 0x808080);
     scene.add(gridHelper);
 
     // Add lights
-    const ambientLight = new THREE.AmbientLight(0x404040); // Soft light
+    const ambientLight = new THREE.AmbientLight(0x404040);
     scene.add(ambientLight);
 
     const directionalLight = new THREE.DirectionalLight(0xffffff, 0.5);
@@ -54,7 +53,7 @@ const SurfaceWithUser = () => {
 
     // Add user to the scene
     const material = new THREE.MeshStandardMaterial({
-      color: 0xffffff, // White user material
+      color: 0xffffff,
       metalness: 0.2,
       roughness: 0.5,
     });
@@ -86,99 +85,64 @@ const SurfaceWithUser = () => {
     // Group user parts
     const user = new THREE.Group();
     user.add(head, body, leftArm, rightArm, leftLeg, rightLeg);
-    user.position.set(0, 0, 0); // Position user at the center of the scene
+    user.position.set(0, 0, 0);
     scene.add(user);
     userRef.current = user;
 
-    // const lineMaterial = new THREE.LineBasicMaterial({ color: 0xff0000 });
-    // const lineGeometry = new THREE.BufferGeometry().setFromPoints([
-    //   new THREE.Vector3(random.x, 0, 0), // Start position
-    //   new THREE.Vector3(random.x, random.y, 0), // End position
-    // ]);
-    // console.log(lineGeometry, lineMaterial, "kllpo");
-    // const line = new THREE.Line(lineGeometry, lineMaterial);
-    // scene.add(line);
-
-    // console.log(scene, "s");
-
     // Handle keydown events for movement
-    const handleKeyDown = (event) => {
+    const handleKeyDown = (event: KeyboardEvent) => {
       if (event.key === "ArrowRight") {
-        userPositionRef.current.x += 0.1; // Move right
+        userPositionRef.current.x += 0.1;
       } else if (event.key === "ArrowLeft") {
-        userPositionRef.current.x -= 0.1; // Move left
-      }
-      //    else if (event.key === "ArrowUp") {
-      //     userPositionRef.current.z += 0.1; // Move up
-      //     //   userPositionRef.current.y += 0.1;
-      //   } else if (event.key === "ArrowDown") {
-      //     userPositionRef.current.z -= 0.1; // Move down
-      //     console.log(userPositionRef);
-      //     //   userPositionRef.current.y -= 0.1;
-      //   }
-      else if (event.key === " ") {
-        userPositionRef.current.y += 1; // Move up
+        userPositionRef.current.x -= 0.1;
+      } else if (event.key === " ") {
+        userPositionRef.current.y += 1;
         setTimeout(() => {
-          userPositionRef.current.y -= 1; // Move back down after 1 second
+          userPositionRef.current.y -= 1;
         }, 1000);
       }
     };
 
-    // Add event listener for keydown
     window.addEventListener("keydown", handleKeyDown);
-
-    // const createRandomLine = () => {
-    //   const material = new THREE.LineBasicMaterial({ color: 0xff0000 });
-    //   const points = [];
-
-    //   // Generate random points within grid range
-    //   const xStart = Math.floor(Math.random() * 20) - 10; // Random between -10 and 10
-    //   const xEnd = Math.floor(Math.random() * 20) - 10;
-    //   const yStart = Math.floor(Math.random() * 20) - 10;
-    //   const yEnd = Math.floor(Math.random() * 20) - 10;
-
-    //   points.push(new THREE.Vector3(xStart, yStart, 0)); // Starting point
-    //   points.push(new THREE.Vector3(xEnd, yEnd, 0)); // Ending point
-
-    //   const geometry = new THREE.BufferGeometry().setFromPoints(points);
-    //   const line = new THREE.Line(geometry, material);
-    //   scene.add(line);
-    // };
-
-    // const lineInterval = setInterval(createRandomLine, 1000);
 
     // Animation loop
     const animate = () => {
+      if (
+        !userRef.current ||
+        !rendererRef.current ||
+        !sceneRef.current ||
+        !cameraRef.current
+      )
+        return;
+
       requestAnimationFrame(animate);
-      // Update user position based on ref
-      user.position.x = userPositionRef.current.x;
-      user.position.y = userPositionRef.current.y;
+      userRef.current.position.x = userPositionRef.current.x;
+      userRef.current.position.y = userPositionRef.current.y;
 
-      // Rotate the grid and user slightly for effect
-      //   gridHelper.rotation.y += 0.001;
-      //   user.rotation.y += 0.01;
-
-      renderer.render(scene, camera);
+      rendererRef.current.render(sceneRef.current, cameraRef.current);
     };
 
     // Handle window resize
     const handleResize = () => {
+      if (!cameraRef.current || !rendererRef.current) return;
+
       const width = window.innerWidth;
       const height = window.innerHeight;
-      camera.aspect = width / height;
-      camera.updateProjectionMatrix();
-      renderer.setSize(width, height);
+      cameraRef.current.aspect = width / height;
+      cameraRef.current.updateProjectionMatrix();
+      rendererRef.current.setSize(width, height);
     };
 
     window.addEventListener("resize", handleResize);
     animate();
 
-    // Cleanup on component unmount
+    // Cleanup
     return () => {
-    //   clearInterval(lineInterval);
       window.removeEventListener("keydown", handleKeyDown);
       window.removeEventListener("resize", handleResize);
-      mountRef.current?.removeChild(renderer.domElement);
+      if (mountRef.current && rendererRef.current) {
+        mountRef.current.removeChild(rendererRef.current.domElement);
+      }
       scene.clear();
     };
   }, []);
