@@ -1,5 +1,7 @@
 import React, { useEffect, useRef, useState } from "react";
 import * as THREE from "three";
+import { FontLoader } from "three/examples/jsm/loaders/FontLoader";
+import { TextGeometry } from "three/examples/jsm/geometries/TextGeometry";
 
 const SurfaceWithUser = () => {
   const mountRef = useRef<HTMLDivElement>(null);
@@ -12,12 +14,13 @@ const SurfaceWithUser = () => {
   const speedRef = useRef({ x: 0.05, z: 0.05 });
   const raycasterRef = useRef<THREE.Raycaster>(new THREE.Raycaster());
   const mouseRef = useRef<THREE.Vector2>(new THREE.Vector2());
-  const [isHoveringGrid, setIsHoveringGrid] = useState(false);
   const userPositionRef = useRef<{ x: number; y: number; z: number }>({
     x: 0,
     y: 0,
     z: 0,
   });
+  const [isKeyPressedAllowed, setIskeyPressedAllowed] = useState<any>(true);
+  const timerMeshRef = useRef<any>(null);
   const currentLineCountRef = useRef<number>(1); // Add this line to track current line count
 
   const makeLine = (scene: any, num: number) => {
@@ -181,6 +184,145 @@ const SurfaceWithUser = () => {
     directionalLight.position.set(5, 5, 5);
     scene.add(directionalLight);
 
+    let isJumping = false;
+    let jumpStartTime = 0;
+
+    const clock = new THREE.Clock();
+
+    function jump() {
+      if (!isJumping) {
+        isJumping = true;
+        jumpStartTime = clock.getElapsedTime();
+      }
+    }
+
+    function updateUserJump() {
+      if (isJumping) {
+        const elapsedTime = clock.getElapsedTime() - jumpStartTime;
+        const jumpDuration = 1; // Total jump duration
+        const jumpHeight = 3; // Max jump height
+
+        if (elapsedTime < jumpDuration) {
+          // Smooth jump using sine wave interpolation
+          const progress = elapsedTime / jumpDuration;
+          const y = jumpHeight * Math.sin(Math.PI * progress);
+          userPositionRef.current.y = y; // Update position
+        } else {
+          userPositionRef.current.y = 0; // Reset to ground
+          isJumping = false; // End jump
+        }
+      }
+    }
+
+    const timerScene = new THREE.Scene();
+    const timerCamera = new THREE.OrthographicCamera(
+      -window.innerWidth / 2,
+      window.innerWidth / 2,
+      window.innerHeight / 2,
+      -window.innerHeight / 2,
+      1,
+      1000
+    );
+    timerCamera.position.z = 100;
+    const fontLoader = new FontLoader();
+    fontLoader.load(
+      "https://threejs.org/examples/fonts/helvetiker_regular.typeface.json",
+      (font) => {
+        const createTimerText = (time: number): THREE.Group => {
+          const minutes = Math.floor(time / 60);
+          const remainingSeconds = time % 60;
+          if (minutes === 0 && remainingSeconds === 0) {
+            setIskeyPressedAllowed(false);
+          }
+          const timeString = `${minutes
+            .toString()
+            .padStart(2, "0")}:${remainingSeconds.toString().padStart(2, "0")}`;
+
+          const group = new THREE.Group();
+
+          // Create the circular box (green border, white background)
+          const boxGeometry = new THREE.CircleGeometry(50, 64); // Radius = 50, smooth edges
+          const borderMaterial = new THREE.MeshBasicMaterial({
+            color: 0x00ff00,
+          }); // Green color for border
+
+          const borderMesh = new THREE.Mesh(boxGeometry, borderMaterial);
+
+          // Inner white circle for background
+          const innerCircleGeometry = new THREE.CircleGeometry(45, 64); // Slightly smaller for border effect
+          const backgroundMaterial = new THREE.MeshBasicMaterial({
+            color: 0xffffff,
+          }); // White background
+          const innerCircleMesh = new THREE.Mesh(
+            innerCircleGeometry,
+            backgroundMaterial
+          );
+
+          // Position the inner circle slightly inward
+          innerCircleMesh.position.set(0, 0, 0.1); // Ensures it's layered above the border
+          borderMesh.add(innerCircleMesh);
+
+          // Add text in the center of the circle
+          const textGeometry = new TextGeometry(timeString, {
+            font: font, // Ensure font is preloaded
+            size: 15, // Text size
+            height: 1, // Flat text
+          });
+          const textMaterial = new THREE.MeshBasicMaterial({ color: 0x000000 }); // Black text color
+          const textMesh = new THREE.Mesh(textGeometry, textMaterial);
+
+          // Center text in the circle
+          textGeometry.computeBoundingBox();
+          if (textGeometry.boundingBox) {
+            const textWidth =
+              textGeometry.boundingBox.max.x - textGeometry.boundingBox.min.x;
+            const textHeight =
+              textGeometry.boundingBox.max.y - textGeometry.boundingBox.min.y;
+            textMesh.position.set(-textWidth / 2, -textHeight / 2, 0.2); // Center text
+          }
+
+          // Group the components together
+          group.add(borderMesh);
+          group.add(textMesh);
+
+          // Position the timer box in the top right corner
+          group.position.set(
+            window.innerWidth / 2 - 100,
+            window.innerHeight / 2 - 100,
+            0
+          ); // Adjust padding as needed
+
+          return group;
+        };
+
+        let timerMesh = createTimerText(60); // Start with 1 minute (60 seconds)
+        timerScene.add(timerMesh);
+        timerMeshRef.current = timerMesh;
+
+        // Update timer mesh when time changes
+        const updateTimer = (time: number) => {
+          if (timerMeshRef.current) {
+            timerScene.remove(timerMeshRef.current);
+            timerMeshRef.current = createTimerText(time);
+            timerScene.add(timerMeshRef.current);
+          }
+        };
+
+        // Countdown logic
+        let countdownTime = 60; // Start with 1 minute (60 seconds)
+        const timerInterval = setInterval(() => {
+          if (countdownTime > 0) {
+            countdownTime -= 1; // Decrement the time
+            updateTimer(countdownTime);
+          } else {
+            clearInterval(timerInterval); // Stop the timer when it reaches 0
+          }
+        }, 1000);
+
+        return () => clearInterval(timerInterval);
+      }
+    );
+
     // Add fog
     scene.fog = new THREE.Fog(0x000000, 40, 40);
 
@@ -221,29 +363,25 @@ const SurfaceWithUser = () => {
     scene.add(user);
     userRef.current = user;
 
-    // Initialize first line
     makeLine(scene, 1);
 
     const handleKeyDown = (event: KeyboardEvent) => {
       const GRID_SIZE = 10;
-      const newPosition = { ...userPositionRef.current };
-      if (event.key === "ArrowRight") {
-        newPosition.x = Math.min(newPosition.x + 0.1, GRID_SIZE);
-      } else if (event.key === "ArrowLeft") {
-        newPosition.x = Math.max(newPosition.x - 0.1, -GRID_SIZE);
-      } else if (event.key === "ArrowUp") {
-        newPosition.z = Math.max(newPosition.z - 0.1, -GRID_SIZE);
-      } else if (event.key === "ArrowDown") {
-        newPosition.z = Math.min(newPosition.z + 0.1, GRID_SIZE);
-      } else if (event.key === " ") {
-        if (newPosition.y < 2) {
-          newPosition.y += 1;
-          setTimeout(() => {
-            userPositionRef.current.y = 0;
-          }, 1000);
+      if (isKeyPressedAllowed) {
+        const newPosition = { ...userPositionRef.current };
+        if (event.key === "ArrowRight") {
+          newPosition.x = Math.min(newPosition.x + 0.1, GRID_SIZE);
+        } else if (event.key === "ArrowLeft") {
+          newPosition.x = Math.max(newPosition.x - 0.1, -GRID_SIZE);
+        } else if (event.key === "ArrowUp") {
+          newPosition.z = Math.max(newPosition.z - 0.1, -GRID_SIZE);
+        } else if (event.key === "ArrowDown") {
+          newPosition.z = Math.min(newPosition.z + 0.1, GRID_SIZE);
+        } else if (event.key === " ") {
+            jump();
         }
+        userPositionRef.current = newPosition;
       }
-      userPositionRef.current = newPosition;
     };
 
     const handleMouseMove = (event: MouseEvent) => {
@@ -259,8 +397,6 @@ const SurfaceWithUser = () => {
       ]);
 
       const isHovering = intersects.length > 0;
-      setIsHoveringGrid(isHovering);
-
       if (isHovering) {
         scene.rotation.y = mouseRef.current.x * 0.5;
         scene.rotation.x = mouseRef.current.y * 0.5;
@@ -275,7 +411,6 @@ const SurfaceWithUser = () => {
         scene.rotation.x = 0;
         scene.rotation.y = 0;
       }
-      setIsHoveringGrid(false);
     };
 
     const handleResize = () => {
@@ -298,13 +433,19 @@ const SurfaceWithUser = () => {
         return;
 
       requestAnimationFrame(animate);
+
       userRef.current.position.x = userPositionRef.current.x;
       userRef.current.position.y = userPositionRef.current.y;
       userRef.current.position.z = userPositionRef.current.z;
 
       animateLines();
+      updateUserJump();
 
       rendererRef.current.render(sceneRef.current, cameraRef.current);
+      rendererRef.current.autoClear = false;
+      rendererRef.current.clearDepth();
+      rendererRef.current.render(timerScene, timerCamera);
+      rendererRef.current.autoClear = true;
     };
 
     window.addEventListener("keydown", handleKeyDown);
@@ -313,7 +454,6 @@ const SurfaceWithUser = () => {
     window.addEventListener("mouseleave", handleMouseLeave);
 
     animate();
-
     return () => {
       window.removeEventListener("keydown", handleKeyDown);
       window.removeEventListener("resize", handleResize);
@@ -322,7 +462,7 @@ const SurfaceWithUser = () => {
       if (mountRef.current && rendererRef.current) {
         mountRef.current.removeChild(renderer.domElement);
       }
-      scene.clear();
+      timerScene.clear();
     };
   }, []);
 
