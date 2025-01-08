@@ -1,14 +1,19 @@
 import React from "react";
-import { useNavigate } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 
-const GameOver = ({ score = 100 }: any) => {
+const GameOver = () => {
   const navigate = useNavigate();
+  const location = useLocation();
+  const queryParams = new URLSearchParams(location.search);
+  const score = queryParams.get("score");
+
   const onReplay = () => {
     navigate("/");
   };
 
   const onExit = () => {
-    navigate("/thankyou");
+    console.log("Exit called");
+    // navigate("/thankyou");
   };
 
   return (

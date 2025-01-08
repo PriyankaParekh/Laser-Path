@@ -593,7 +593,7 @@ const SurfaceWithUser = () => {
   useEffect(() => {
     if (!isUserAlive) {
       setTimeout(() => {
-        navigate("/exit"); // Replace with your target route
+        navigate("/exit?score=99"); // Replace with your target route
       }, 500);
     }
   }, [isUserAlive, navigate]);
