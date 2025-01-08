@@ -1,24 +1,132 @@
-/* Global styles */
-body, html {
+body,
+html {
   margin: 0;
   padding: 0;
-  overflow: hidden; /* Hide scrollbars on desktop */
+  overflow: hidden;
   width: 100%;
   height: 100%;
+  font-family: "Poppins", sans-serif;
 }
 
-/* Ensure the canvas takes full height on mobile */
 @media (max-width: 767px) {
   .relative {
     width: 100%;
-    height: 100vh; /* Full height for mobile */
+    height: 100vh;
   }
 
   .w-full {
-    width: 100% !important; /* Ensure full width on mobile */
+    width: 100% !important;
   }
 
   .h-full {
-    height: 100vh !important; /* Ensure full height on mobile */
+    height: 100vh !important;
   }
+}
+
+.game-over-container {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 100vh;
+  background-color: #121212;
+  color: #ffffff;
+  background: linear-gradient(145deg, #1e1e1e, #252525);
+}
+
+.game-over-card {
+  background-color: #1e1e1e;
+  border: 1px solid #333;
+  border-radius: 12px;
+  padding: 3rem 4rem;
+  text-align: center;
+  box-shadow: 0 8px 15px rgba(0, 0, 0, 0.2), 0 4px 6px rgba(0, 0, 0, 0.4);
+  animation: growAndFadeIn 1s ease-out;
+  width: 400px;
+  height: 350px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+
+.game-over-title {
+  font-size: 3rem;
+  margin-bottom: 1.5rem;
+  color: #f05454;
+}
+
+.game-over-score {
+  font-size: 1.7rem;
+  margin-bottom: 2rem;
+}
+.game-over-score span {
+  font-weight: bold;
+  color: #4caf50;
+}
+.btn {
+  padding: 1rem 2rem;
+  font-size: 1.1rem;
+  margin: 1rem;
+  border-radius: 8px; 
+  border: none;
+  cursor: pointer;
+  font-weight: 600;
+  transition: all 0.3s ease; 
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1); 
+  outline: none; 
+}
+
+.replay-btn {
+  background-color: #4caf50;
+  color: #fff;
+  transform: scale(1);
+}
+
+.replay-btn:hover {
+  background-color: #144e17; 
+  transform: scale(1.05); 
+  box-shadow: 0 5px 15px rgb(231, 222, 222); 
+  border: 2px solid #1df60a; 
+}
+
+.replay-btn:active {
+  transform: scale(1); 
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1); 
+}
+
+.exit-btn {
+  background-color: #f05454;
+  color: #fff;
+  transform: scale(1);
+}
+
+.exit-btn:hover {
+  background-color: #ca0707; 
+  transform: scale(1.05); 
+  box-shadow: 0 5px 15px rgb(231, 222, 222); 
+  border: 2px solid #ff4646; 
+}
+
+.exit-btn:active {
+  transform: scale(1); 
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1); 
+}
+
+@keyframes buttonAppear {
+  0% {
+    transform: scale(0.8);
+    opacity: 0;
+  }
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+.replay-btn,
+.exit-btn {
+  animation: buttonAppear 0.5s ease-out forwards; 
 }
