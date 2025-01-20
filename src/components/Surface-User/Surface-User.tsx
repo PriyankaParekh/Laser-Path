@@ -275,7 +275,14 @@ const SurfaceWithUser = () => {
     cameraRef.current = camera;
 
     // Initialize renderer
-    const renderer = new THREE.WebGLRenderer({ antialias: true });
+    let renderer:any;
+    try {
+      renderer = new THREE.WebGLRenderer({ antialias: true });
+      renderer.setSize(window.innerWidth, window.innerHeight);
+    } catch (error) {
+      console.error('WebGL Renderer failed:', error);
+      alert('Your browser or device does not support WebGL.');
+    }
     renderer.setSize(window.innerWidth, window.innerHeight);
     renderer.setPixelRatio(window.devicePixelRatio);
     renderer.setClearColor(0x000000, 1);
@@ -318,7 +325,7 @@ const SurfaceWithUser = () => {
     function updateUserJump() {
       if (isJumping) {
         const elapsedTime = clock.getElapsedTime() - jumpStartTime;
-        const jumpDuration = 1; // Total jump duration
+        const jumpDuration = 1.5; // Total jump duration
         const jumpHeight = 3; // Max jump height
 
         if (elapsedTime < jumpDuration) {
@@ -385,7 +392,7 @@ const SurfaceWithUser = () => {
           const textGeometry = new TextGeometry(timeString, {
             font: font, // Ensure font is preloaded
             size: 15, // Text size
-            height: 1, // Flat text
+            depth: 1, // Flat text
           });
           const textMaterial = new THREE.MeshBasicMaterial({ color: 0x000000 }); // Black text color
           const textMesh = new THREE.Mesh(textGeometry, textMaterial);
@@ -587,13 +594,14 @@ const SurfaceWithUser = () => {
         mountRef.current.removeChild(renderer.domElement);
       }
       timerScene.clear();
+      scene.clear();
     };
   }, []);
 
   useEffect(() => {
     if (!isUserAlive) {
       setTimeout(() => {
-        navigate("/exit?score=99"); // Replace with your target route
+        navigate(`/exit?score=${currentLineCountRef.current}`); // Correct syntax
       }, 500);
     }
   }, [isUserAlive, navigate]);
